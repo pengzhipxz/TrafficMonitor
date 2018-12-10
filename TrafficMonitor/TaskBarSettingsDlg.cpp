@@ -5,6 +5,7 @@
 #include "TrafficMonitor.h"
 #include "TaskBarSettingsDlg.h"
 #include "afxdialogex.h"
+#include "CMFCColorDialogEx.h"
 
 
 // CTaskBarSettingsDlg 对话框
@@ -39,6 +40,23 @@ void CTaskBarSettingsDlg::DrawStaticColor()
 	m_back_color_static.SetFillColor(m_data.back_color);
 }
 
+void CTaskBarSettingsDlg::IniUnitCombo()
+{
+	m_unit_combo.ResetContent();
+	m_unit_combo.AddString(CCommon::LoadText(IDS_AUTO));
+	if (m_data.unit_byte)
+	{
+		m_unit_combo.AddString(CCommon::LoadText(IDS_FIXED_AS, _T(" KB/s")));
+		m_unit_combo.AddString(CCommon::LoadText(IDS_FIXED_AS, _T(" MB/s")));
+	}
+	else
+	{
+		m_unit_combo.AddString(CCommon::LoadText(IDS_FIXED_AS, _T(" Kb/s")));
+		m_unit_combo.AddString(CCommon::LoadText(IDS_FIXED_AS, _T(" Mb/s")));
+	}
+	m_unit_combo.SetCurSel(static_cast<int>(m_data.speed_unit));
+}
+
 void CTaskBarSettingsDlg::DoDataExchange(CDataExchange* pDX)
 {
 	DDX_Control(pDX, IDC_TEXT_COLOR_STATIC1, m_text_color_static);
@@ -70,6 +88,9 @@ BEGIN_MESSAGE_MAP(CTaskBarSettingsDlg, CTabDlg)
 	ON_BN_CLICKED(IDC_SPECIFY_EACH_ITEM_COLOR_CHECK, &CTaskBarSettingsDlg::OnBnClickedSpecifyEachItemColorCheck)
 	ON_CBN_SELCHANGE(IDC_DOUBLE_CLICK_COMBO, &CTaskBarSettingsDlg::OnCbnSelchangeDoubleClickCombo)
 	ON_BN_CLICKED(IDC_HORIZONTAL_ARRANGE_CHECK, &CTaskBarSettingsDlg::OnBnClickedHorizontalArrangeCheck)
+	ON_BN_CLICKED(IDC_SEPARATE_VALUE_UNIT_CHECK, &CTaskBarSettingsDlg::OnBnClickedSeparateValueUnitCheck)
+	ON_BN_CLICKED(IDC_UNIT_BYTE_RADIO, &CTaskBarSettingsDlg::OnBnClickedUnitByteRadio)
+	ON_BN_CLICKED(IDC_UNIT_BIT_RADIO, &CTaskBarSettingsDlg::OnBnClickedUnitBitRadio)
 END_MESSAGE_MAP()
 
 
@@ -100,6 +121,7 @@ BOOL CTaskBarSettingsDlg::OnInitDialog()
 	((CButton*)GetDlgItem(IDC_SPEED_SHORT_MODE_CHECK))->SetCheck(m_data.speed_short_mode);
 	((CButton*)GetDlgItem(IDC_VALUE_RIGHT_ALIGN_CHECK))->SetCheck(m_data.value_right_align);
 	((CButton*)GetDlgItem(IDC_HORIZONTAL_ARRANGE_CHECK))->SetCheck(m_data.horizontal_arrange);
+	((CButton*)GetDlgItem(IDC_SEPARATE_VALUE_UNIT_CHECK))->SetCheck(m_data.separate_value_unit_with_space);
 
 	m_text_color_static.SetLinkCursor();
 	m_back_color_static.SetLinkCursor();
@@ -109,10 +131,12 @@ BOOL CTaskBarSettingsDlg::OnInitDialog()
 	m_toolTip.SetMaxTipWidth(theApp.DPI(300));
 	m_toolTip.AddTool(GetDlgItem(IDC_SPEED_SHORT_MODE_CHECK), CCommon::LoadText(IDS_SPEED_SHORT_MODE_TIP));
 
-	m_unit_combo.AddString(CCommon::LoadText(IDS_AUTO));
-	m_unit_combo.AddString(CCommon::LoadText(IDS_FIXED_AS, _T(" KB/s")));
-	m_unit_combo.AddString(CCommon::LoadText(IDS_FIXED_AS, _T(" MB/s")));
-	m_unit_combo.SetCurSel(static_cast<int>(m_data.speed_unit));
+	if(m_data.unit_byte)
+		((CButton*)GetDlgItem(IDC_UNIT_BYTE_RADIO))->SetCheck(TRUE);
+	else
+		((CButton*)GetDlgItem(IDC_UNIT_BIT_RADIO))->SetCheck(TRUE);
+
+	IniUnitCombo();
 
 	m_hide_unit_chk.SetCheck(m_data.hide_unit);
 	if (m_data.speed_unit == SpeedUnit::AUTO)
@@ -132,11 +156,12 @@ BOOL CTaskBarSettingsDlg::OnInitDialog()
 	m_double_click_combo.AddString(CCommon::LoadText(IDS_NONE));
 	m_double_click_combo.SetCurSel(static_cast<int>(m_data.double_click_action));
 
+	m_digit_number_combo.AddString(_T("3"));
 	m_digit_number_combo.AddString(_T("4"));
 	m_digit_number_combo.AddString(_T("5"));
 	m_digit_number_combo.AddString(_T("6"));
 	m_digit_number_combo.AddString(_T("7"));
-	m_digit_number_combo.SetCurSel(m_data.digits_number - 4);
+	m_digit_number_combo.SetCurSel(m_data.digits_number - 3);
 
 	return TRUE;  // return TRUE unless you set the focus to a control
 				  // 异常: OCX 属性页应返回 FALSE
@@ -319,7 +344,7 @@ void CTaskBarSettingsDlg::OnOK()
 	GetDlgItemText(IDC_FONT_NAME_EDIT1, m_data.font.name);
 
 	//获取数据位数的设置
-	m_data.digits_number = m_digit_number_combo.GetCurSel() + 4;
+	m_data.digits_number = m_digit_number_combo.GetCurSel() + 3;
 
 	CTabDlg::OnOK();
 }
@@ -358,7 +383,7 @@ afx_msg LRESULT CTaskBarSettingsDlg::OnStaticClicked(WPARAM wParam, LPARAM lPara
 		}
 		else
 		{
-			CColorDialog colorDlg(m_data.text_colors[0], 0, this);
+			CMFCColorDialogEx colorDlg(m_data.text_colors[0], 0, this);
 			if (colorDlg.DoModal() == IDOK)
 			{
 				m_data.text_colors[0] = colorDlg.GetColor();
@@ -372,7 +397,7 @@ afx_msg LRESULT CTaskBarSettingsDlg::OnStaticClicked(WPARAM wParam, LPARAM lPara
 	case IDC_TEXT_COLOR_STATIC2:		//点击“背景颜色”时
 	{
 		//设置背景颜色
-		CColorDialog colorDlg(m_data.back_color, 0, this);
+		CMFCColorDialogEx colorDlg(m_data.back_color, 0, this);
 		if (colorDlg.DoModal() == IDOK)
 		{
 			m_data.back_color = colorDlg.GetColor();
@@ -407,4 +432,27 @@ void CTaskBarSettingsDlg::OnBnClickedHorizontalArrangeCheck()
 {
 	// TODO: 在此添加控件通知处理程序代码
 	m_data.horizontal_arrange = (((CButton*)GetDlgItem(IDC_HORIZONTAL_ARRANGE_CHECK))->GetCheck() != 0);
+}
+
+
+void CTaskBarSettingsDlg::OnBnClickedSeparateValueUnitCheck()
+{
+	// TODO: 在此添加控件通知处理程序代码
+	m_data.separate_value_unit_with_space = (((CButton*)GetDlgItem(IDC_SEPARATE_VALUE_UNIT_CHECK))->GetCheck() != 0);
+}
+
+
+void CTaskBarSettingsDlg::OnBnClickedUnitByteRadio()
+{
+	// TODO: 在此添加控件通知处理程序代码
+	m_data.unit_byte = true;
+	IniUnitCombo();
+}
+
+
+void CTaskBarSettingsDlg::OnBnClickedUnitBitRadio()
+{
+	// TODO: 在此添加控件通知处理程序代码
+	m_data.unit_byte = false;
+	IniUnitCombo();
 }

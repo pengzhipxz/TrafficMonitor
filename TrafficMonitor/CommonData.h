@@ -5,10 +5,18 @@
 //储存某一天的历史流量
 struct HistoryTraffic
 {
-	int year;
-	int month;
-	int day;
-	unsigned int kBytes;	//当天使用的流量（以KB为单位）
+	int year{};
+	int month{};
+	int day{};
+	//unsigned int kBytes;	//当天使用的流量（以KB为单位）
+	unsigned int up_kBytes{};
+	unsigned int down_kBytes{};
+	bool mixed{ true };		//如果不区分上传和下载流量，则为true
+
+	unsigned int kBytes() const
+	{
+		return up_kBytes + down_kBytes;
+	}
 
 	//比较两个HistoryTraffic对象的日期，如果a的时间大于b，则返回true
 	static bool DateGreater(const HistoryTraffic& a, const HistoryTraffic& b)
@@ -87,7 +95,8 @@ enum class Language
 {
 	FOLLOWING_SYSTEM,		//跟随系统
 	ENGLISH,				//英语
-	SIMPLIFIED_CHINESE		//简体中文
+	SIMPLIFIED_CHINESE,		//简体中文
+	TRADITIONAL_CHINESE		//繁体中文
 };
 
 //字体
@@ -101,51 +110,76 @@ struct FontInfo
 	bool strike_out;	//删除线
 };
 
-//将字号转成成LOGFONT结构中的lfHeight
+//将字号转成LOGFONT结构中的lfHeight
 #define FONTSIZE_TO_LFHEIGHT(font_size) (-MulDiv(font_size, GetDeviceCaps(::GetDC(HWND_DESKTOP), LOGPIXELSY), 72))
 
 //选项设置数据
-#define MAIN_WND_COLOR_NUM 4		//主窗口颜色数量
-struct MainWndSettingData
+struct MainConfigData
 {
-	//主窗口
-	COLORREF text_colors[MAIN_WND_COLOR_NUM]{};		//文字颜色（分别为“上传”、“下载”、“CPU”、“内存”的颜色）
+	bool m_always_on_top{ false };		//窗口置顶
+	int m_transparency{ 100 };			//窗口透明度
+	bool m_lock_window_pos{ false };	//锁定窗口位置
+	bool m_show_more_info{ false };		//显示更多信息
+	bool m_mouse_penetrate{ false };	//鼠标穿透
+	bool m_show_task_bar_wnd{ false };	//显示任务栏窗口
+	bool m_hide_main_window;			//隐藏主窗口
+	bool m_show_notify_icon{ true };	//显示通知区域图标
+	bool m_tbar_show_cpu_memory;		//任务栏窗口显示CPU和内存利用率
+
+	int m_position_x;	//窗口位置的x坐标
+	int m_position_y;	//窗口位置的y坐标
+
+	bool m_auto_select{ false };	//自动选择连接
+	bool m_select_all{ false };		//统计所有连接的网速
+	string m_connection_name;		//当前选择网络的名称
+
+	wstring m_skin_name;			//选择的皮肤的名称
+	int m_notify_icon_selected{};	//要显示的通知区图标
+	bool m_alow_out_of_border{ false };		//是否允许悬浮窗超出屏幕边界
+
+	bool m_show_internet_ip{ false };		//是否在“连接详情”对话框中显示外网IP地址
+	bool m_use_log_scale{ false };			//“历史流量统计”对话框中绘制表示历史流量数值的矩形时是否使用对数比例
+};
+
+//选项设置中“主窗口设置”和“任务栏窗口设置”中公共的数据（不使用此结构体创建对象）
+struct PublicSettingData
+{
 	bool specify_each_item_color{ false };		//是否指定每个项目的颜色
 	FontInfo font;			//字体
 	DispStrings disp_str;	//显示的文本
-	bool speed_short_mode{ false };		//网速显示简洁模式（减少小数点的位数，单位不显示“B”）
 	bool swap_up_down{ false };		//交换上传和下载显示的位置
-	bool hide_main_wnd_when_fullscreen;		//有程序全屏运行时隐藏悬浮窗
+	bool speed_short_mode{ false };		//网速显示简洁模式（减少小数点的位数，单位不显示“B”）
+	bool separate_value_unit_with_space{ true };	//网速数值和单位用空格分隔
+	bool unit_byte{ true };				//使用字节(B)而不是比特(b)为单位
 	SpeedUnit speed_unit;		//网速的单位
 	bool hide_unit;			//隐藏单位
 	bool hide_percent;		//隐藏百分号
 	DoubleClickAction double_click_action;		//鼠标双击动作
 };
 
-#define TASKBAR_COLOR_NUM 8		//任务栏窗口颜色数量
-struct TaskBarSettingData
+#define MAIN_WND_COLOR_NUM 4		//主窗口颜色数量
+//选项设置中“主窗口设置”的数据
+struct MainWndSettingData : public PublicSettingData
 {
-	//任务栏窗口
+	COLORREF text_colors[MAIN_WND_COLOR_NUM]{};		//文字颜色（分别为“上传”、“下载”、“CPU”、“内存”的颜色）
+	bool hide_main_wnd_when_fullscreen;		//有程序全屏运行时隐藏悬浮窗
+};
+
+#define TASKBAR_COLOR_NUM 8		//任务栏窗口颜色数量
+//选项设置中“任务栏窗口设置”的数据
+struct TaskBarSettingData : public PublicSettingData
+{
 	COLORREF  back_color{ RGB(0, 0, 0) };	//背景颜色
 	COLORREF text_colors[TASKBAR_COLOR_NUM]{};		//文字颜色（依次为“上传”、“下载”、“CPU”、“内存”的标签和数据颜色）
-	bool specify_each_item_color{ false };		//是否指定每个项目的颜色
-	FontInfo font;			//字体
-	DispStrings disp_str;	//显示的文本
-	bool swap_up_down{ false };		//交换上传和下载显示的位置
-	bool speed_short_mode{ false };		//网速显示简洁模式（减少小数点的位数，单位不显示“B”）
 	bool value_right_align{ false };	//数值是否右对齐
 	int digits_number{ 4 };				//数据位数
 	bool horizontal_arrange{ true };	//水平排列
 	bool tbar_wnd_on_left{ false };		//如果为true，则任务栏窗口显示在任务栏的左侧（或上方）
-	SpeedUnit speed_unit;		//网速的单位
-	bool hide_unit;			//隐藏单位
-	bool hide_percent;		//隐藏百分号
-	DoubleClickAction double_click_action;		//鼠标双击动作
 };
 
+//选项设置中“常规设置”的数据
 struct GeneralSettingData
 {
-	//常规设置
 	bool check_update_when_start{ true };
 	bool auto_run{ false };
 	bool allow_skin_cover_font{ true };
@@ -158,6 +192,10 @@ struct GeneralSettingData
 	int memory_tip_value;			//要提示的内存使用率的临界值
 	//语言
 	Language language;
+
+	bool show_all_interface{ true };
+
+	bool portable_mode{ false };		//便携模式，如果为true，则程序所有数据都保存到exe所在目录下，否则保存到Appdata\Romaing目录下
 };
 
 enum class Alignment

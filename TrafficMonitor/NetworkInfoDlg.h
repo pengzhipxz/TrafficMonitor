@@ -1,6 +1,7 @@
 #pragma once
 #include"Common.h"
 #include "afxcmn.h"
+#include "AdapterCommon.h"
 
 // CNetworkInfoDlg 对话框
 
@@ -9,7 +10,7 @@ class CNetworkInfoDlg : public CDialog
 	DECLARE_DYNAMIC(CNetworkInfoDlg)
 
 public:
-	CNetworkInfoDlg(MIB_IFROW network_info ,CWnd* pParent = NULL);   // 标准构造函数
+	CNetworkInfoDlg(vector<NetWorkConection>& adapters, MIB_IFROW* pIfRow, int connection_selected, CWnd* pParent = NULL);   // 标准构造函数
 	virtual ~CNetworkInfoDlg();
 
 // 对话框数据
@@ -17,27 +18,26 @@ public:
 	enum { IDD = IDD_NETWORK_INFO_DIALOG };
 #endif
 
-	unsigned int m_in_bytes;		//当前查看的网络自启动以来已接收字节数
-	unsigned int m_out_bytes;		//当前查看的网络自启动以来已发送字节数
-
 	SYSTEMTIME m_start_time;		//程序启动的时间
 
 protected:
 
-	MIB_IFROW m_network_info;		//当前查看的网络连接信息
-	wstring m_ip_address{ L"-.-.-.-" };		//IP地址
-	wstring m_subnet_mask{ L"-.-.-.-" };	//子网掩码
-	wstring m_default_gateway{ L"-.-.-.-" };	//默认网关
-	wstring m_internet_ip_address{ CCommon::LoadText(IDS_ACQUIRING, _T("...")) };
-	
+	vector<NetWorkConection>& m_connections;
+	MIB_IFROW* m_pIfRow;
+	int m_connection_selected;		//当前对话框显示的连接
+	int m_current_connection;		//初始选择的连接
+
 	CListCtrl m_info_list;
 	CMenu m_menu;
 	CString m_selected_string;
+	CSize m_min_size;
+	CFont m_font_bold;		//默认字体的粗体
 
 	CWinThread* m_pGetIPThread;			//获取外网IP的线程
 
-	void GetIPAddress();	//获取IP地址
+	//void GetIPAddress();	//获取IP地址
 	void ShowInfo();
+	void GetProgramElapsedTime();
 
 	//获取外网IP的线程函数
 	static UINT GetInternetIPThreadFunc(LPVOID lpParam);
@@ -51,4 +51,11 @@ public:
 	afx_msg void OnCopyText();
 	afx_msg void OnNMRClickInfoList1(NMHDR *pNMHDR, LRESULT *pResult);
 	afx_msg void OnClose();
+	afx_msg void OnBnClickedPreviousButton();
+	afx_msg void OnBnClickedNextButton();
+	virtual BOOL PreTranslateMessage(MSG* pMsg);
+	afx_msg void OnGetMinMaxInfo(MINMAXINFO* lpMMI);
+	afx_msg void OnTimer(UINT_PTR nIDEvent);
+	afx_msg BOOL OnMouseWheel(UINT nFlags, short zDelta, CPoint pt);
+	afx_msg void OnNMDblclkInfoList1(NMHDR *pNMHDR, LRESULT *pResult);
 };

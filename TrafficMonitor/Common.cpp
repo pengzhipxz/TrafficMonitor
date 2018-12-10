@@ -24,103 +24,158 @@ wstring CCommon::StrToUnicode(const char* str, bool utf8)
 	return result;
 }
 
-string CCommon::UnicodeToStr(const wchar_t * wstr)
+string CCommon::UnicodeToStr(const wchar_t * wstr, bool utf8)
 {
 	string result;
 	int size{ 0 };
-	size = WideCharToMultiByte(CP_ACP, 0, wstr, -1, NULL, 0, NULL, NULL);
+	size = WideCharToMultiByte((utf8 ? CP_UTF8 : CP_ACP), 0, wstr, -1, NULL, 0, NULL, NULL);
 	if (size <= 0) return string();
 	char* str = new char[size + 1];
-	WideCharToMultiByte(CP_ACP, 0, wstr, -1, str, size, NULL, NULL);
+	WideCharToMultiByte((utf8 ? CP_UTF8 : CP_ACP), 0, wstr, -1, str, size, NULL, NULL);
 	result.assign(str);
 	delete[] str;
 	return result;
 }
 
-CString CCommon::DataSizeToString(unsigned int size, bool short_mode, SpeedUnit unit, bool hide_unit)
+void CCommon::StringNormalize(wstring & str)
 {
-	CString str;
-	switch (unit)
+	if (str.empty()) return;
+
+	int size = str.size();	//字符串的长度
+	if (size < 0) return;
+	int index1 = 0;		//字符串中第1个不是空格或控制字符的位置
+	int index2 = size - 1;	//字符串中最后一个不是空格或控制字符的位置
+	while (index1 < size && str[index1] >= 0 && str[index1] <= 32)
+		index1++;
+	while (index2 >= 0 && str[index2] >= 0 && str[index2] <= 32)
+		index2--;
+	if (index1 > index2)	//如果index1 > index2，说明字符串全是空格或控制字符
+		str.clear();
+	else if (index1 == 0 && index2 == size - 1)	//如果index1和index2的值分别为0和size - 1，说明字符串前后没有空格或控制字符，直接返回
+		return;
+	else
+		str = str.substr(index1, index2 - index1 + 1);
+}
+
+CString CCommon::DataSizeToString(unsigned int size, const PublicSettingData& cfg)
+{
+	//CString str;
+	CString value_str, unit_str;
+	if (!cfg.unit_byte)		//如果使用比特(bit)为单位，则数值乘以8
+	{
+		size *= 8;
+	}
+	switch (cfg.speed_unit)
 	{
 	case SpeedUnit::AUTO:
-		if (short_mode)
+		if (cfg.speed_short_mode)
 		{
-			//if (size <= 102)			//小于0.1KB时，显示0K
-			//	str = _T("0K");
-			/*else */if (size < 1024 * 10)					//10KB以下以KB为单位，保留1位小数
-				str.Format(_T("%.1f K"), size / 1024.0f);
-			else if (size < 1024 * 1024)			//1MB以下以KB为单位，保留整数
-				str.Format(_T("%.0f K"), size / 1024.0f);
-			else if (size < 1024 * 1024 * 1024)		//1GB以下以MB为单位，保留1位小数
-				str.Format(_T("%.1f M"), size / 1024.0f / 1024.0f);
+			if (size < 1024 * 10)					//10KB以下以KB为单位，保留1位小数
+			{
+				value_str.Format(_T("%.1f"), size / 1024.0f);
+				unit_str = _T("K");
+			}
+			else if (size < 1024 * 1000)			//1000KB以下以KB为单位，保留整数
+			{
+				value_str.Format(_T("%.0f"), size / 1024.0f);
+				unit_str = _T("K");
+			}
+			else if (size < 1024 * 1024 * 1000)		//1000MB以下以MB为单位，保留1位小数
+			{
+				value_str.Format(_T("%.1f"), size / 1024.0f / 1024.0f);
+				unit_str = _T("M");
+			}
 			else
-				str.Format(_T("%.2f G"), size / 1024.0f / 1024.0f / 1024.0f);
+			{
+				value_str.Format(_T("%.2f"), size / 1024.0f / 1024.0f / 1024.0f);
+				unit_str = _T("G");
+			}
 		}
 		else
 		{
 			if (size < 1024 * 10)					//10KB以下以KB为单位，保留2位小数
-				str.Format(_T("%.2f KB"), size / 1024.0f);
-			else if (size < 1024 * 1024)			//1MB以下以KB为单位，保留1位小数
-				str.Format(_T("%.1f KB"), size / 1024.0f);
-			else if (size < 1024 * 1024 * 1024)		//1GB以下以MB为单位，保留2位小数
-				str.Format(_T("%.2f MB"), size / 1024.0f / 1024.0f);
+			{
+				value_str.Format(_T("%.2f"), size / 1024.0f);
+				unit_str = _T("KB");
+			}
+			else if (size < 1024 * 1000)			//1000KB以下以KB为单位，保留1位小数
+			{
+				value_str.Format(_T("%.1f"), size / 1024.0f);
+				unit_str = _T("KB");
+			}
+			else if (size < 1024 * 1024 * 1000)		//1000MB以下以MB为单位，保留2位小数
+			{
+				value_str.Format(_T("%.2f"), size / 1024.0f / 1024.0f);
+				unit_str = _T("MB");
+			}
 			else
-				str.Format(_T("%.2f GB"), size / 1024.0f / 1024.0f / 1024.0f);
+			{
+				value_str.Format(_T("%.2f"), size / 1024.0f / 1024.0f / 1024.0f);
+				unit_str = _T("GB");
+			}
 		}
 		break;
 	case SpeedUnit::KBPS:
-		if (short_mode)
+		if (cfg.speed_short_mode)
 		{
 			if (size < 1024 * 10)					//10KB以下保留1位小数
-			{
-				if (hide_unit)
-					str.Format(_T("%.1f"), size / 1024.0f);
-				else
-					str.Format(_T("%.1f K"), size / 1024.0f);
-			}
+				value_str.Format(_T("%.1f"), size / 1024.0f);
 			else					//10KB以上保留整数
-			{
-				if (hide_unit)
-					str.Format(_T("%.0f"), size / 1024.0f);
-				else
-					str.Format(_T("%.0fK"), size / 1024.0f);
-			}
+				value_str.Format(_T("%.0f"), size / 1024.0f);
+			if (!cfg.hide_unit)
+				unit_str = _T("K");
 		}
 		else
 		{
 			if (size < 1024 * 10)					//10KB以下保留2位小数
-			{
-				if (hide_unit)
-					str.Format(_T("%.2f"), size / 1024.0f);
-				else
-					str.Format(_T("%.2f KB"), size / 1024.0f);
-			}
+				value_str.Format(_T("%.2f"), size / 1024.0f);
 			else			//10KB以上保留1位小数
-			{
-				if (hide_unit)
-					str.Format(_T("%.1f"), size / 1024.0f);
-				else
-					str.Format(_T("%.1f KB"), size / 1024.0f);
-			}
+				value_str.Format(_T("%.1f"), size / 1024.0f);
+			if (!cfg.hide_unit)
+				unit_str = _T("KB");
 		}
 		break;
 	case SpeedUnit::MBPS:
-		if (short_mode)
+		if (cfg.speed_short_mode)
 		{
-			if (hide_unit)
-				str.Format(_T("%.1f"), size / 1024.0f / 1024.0f);
-			else
-				str.Format(_T("%.1f M"), size / 1024.0f / 1024.0f);
+			value_str.Format(_T("%.1f"), size / 1024.0f / 1024.0f);
+			if (!cfg.hide_unit)
+				unit_str = _T("M");
 		}
 		else
 		{
-			if (hide_unit)
-				str.Format(_T("%.2f"), size / 1024.0f / 1024.0f);
-			else
-				str.Format(_T("%.2f MB"), size / 1024.0f / 1024.0f);
+			value_str.Format(_T("%.2f"), size / 1024.0f / 1024.0f);
+			if (!cfg.hide_unit)
+				unit_str = _T("MB");
 		}
 		break;
 	}
+	CString str;
+	if (cfg.separate_value_unit_with_space && !cfg.hide_unit)
+		str = value_str + _T(' ') + unit_str;
+	else
+		str = value_str + unit_str;
+	if (!cfg.unit_byte)	
+	{
+		if (cfg.speed_short_mode && !cfg.hide_unit)
+			str += _T('b');		//如果使用比特(bit)为单位，即使设置了网速简洁模式，也将“b”显示出来
+		else
+			str.Replace(_T('B'), _T('b'));	//如果使用比特(bit)为单位，将B替换成b
+	}
+	return str;
+}
+
+CString CCommon::DataSizeToString(unsigned int size)
+{
+	CString str;
+	if (size < 1024 * 10)					//10KB以下以KB为单位，保留2位小数
+		str.Format(_T("%.2f KB"), size / 1024.0f);
+	else if (size < 1024 * 1024)			//1MB以下以KB为单位，保留1位小数
+		str.Format(_T("%.1f KB"), size / 1024.0f);
+	else if (size < 1024 * 1024 * 1024)		//1GB以下以MB为单位，保留2位小数
+		str.Format(_T("%.2f MB"), size / 1024.0f / 1024.0f);
+	else
+		str.Format(_T("%.2f GB"), size / 1024.0f / 1024.0f / 1024.0f);
 	return str;
 }
 
@@ -355,7 +410,7 @@ SYSTEMTIME CCommon::CompareSystemTime(SYSTEMTIME a, SYSTEMTIME b)
 	return result;
 }
 
-wstring CCommon::GetExePath()
+wstring CCommon::GetModuleDir()
 {
 	wchar_t path[MAX_PATH];
 	GetModuleFileNameW(NULL, path, MAX_PATH);
@@ -366,14 +421,14 @@ wstring CCommon::GetExePath()
 	return current_path;
 }
 
-wstring CCommon::GetSystemPath()
+wstring CCommon::GetSystemDir()
 {
 	wchar_t buff[MAX_PATH];
 	GetSystemDirectory(buff, MAX_PATH);
 	return wstring(buff);
 }
 
-wstring CCommon::GetTemplatePath()
+wstring CCommon::GetTemplateDir()
 {
 	wstring result;
 	wchar_t buff[MAX_PATH];
@@ -384,7 +439,7 @@ wstring CCommon::GetTemplatePath()
 	return result;
 }
 
-wstring CCommon::GetAppDataConfigPath()
+wstring CCommon::GetAppDataConfigDir()
 {
 	LPITEMIDLIST ppidl;
 	TCHAR pszAppDataPath[MAX_PATH];
@@ -411,12 +466,12 @@ void CCommon::DrawWindowText(CDC * pDC, CRect rect, LPCTSTR lpszString, COLORREF
 
 }
 
-void CCommon::SetDrawArea(CDC * pDC, CRect rect)
-{
-	CRgn rgn;
-	rgn.CreateRectRgnIndirect(rect);
-	pDC->SelectClipRgn(&rgn);
-}
+//void CCommon::SetDrawArea(CDC * pDC, CRect rect)
+//{
+//	CRgn rgn;
+//	rgn.CreateRectRgnIndirect(rect);
+//	pDC->SelectClipRgn(&rgn);
+//}
 
 
 bool CCommon::IsForegroundFullscreen()
@@ -462,74 +517,8 @@ bool CCommon::CopyStringToClipboard(const wstring & str)
 	else return false;
 }
 
-//bool CCommon::WhenStart(int time, bool write_log)
-//{
-//	int tick_count = GetTickCount();
-//	if (write_log)
-//	{
-//		char buff[128];
-//		sprintf_s(buff, "start time is %dms, no_multistart_warning_time is %d", tick_count, time);
-//		WriteLog(buff, _T(".\\start.log"));
-//	}
-//	return (tick_count < time);
-//}
 
-//CString CCommon::GetMouseTipsInfo(__int64 today_traffic, int cpu_usage, int memory_usage, int used_memory, int total_memory, bool show_cpu_memory)
-//{
-//	CString tip_info;
-//	if (show_cpu_memory)
-//	{
-//		tip_info.Format(_T("今日已使用流量：%s\r\n内存使用：%s/%s"),
-//			CCommon::KBytesToString(static_cast<unsigned int>(today_traffic / 1024)),
-//			CCommon::KBytesToString(used_memory), CCommon::KBytesToString(total_memory));
-//	}
-//	else
-//	{
-//		tip_info.Format(_T("今日已使用流量：%s\r\nCPU使用：%d%%\r\n内存使用：%s/%s (%d%%)"),
-//			CCommon::KBytesToString(static_cast<unsigned int>(today_traffic / 1024)),
-//			cpu_usage,
-//			CCommon::KBytesToString(used_memory), CCommon::KBytesToString(total_memory),
-//			memory_usage);
-//	}
-//	return tip_info;
-//}
-
-void CCommon::GetWindowsVersion(int & major_version, int & minor_version, int & build_number)
-{
-	DWORD dwMajorVer{}, dwMinorVer{}, dwBuildNumber{};
-	HMODULE hModNtdll{};
-	if (hModNtdll = ::LoadLibraryW(L"ntdll.dll"))
-	{
-		typedef void (WINAPI *pfRTLGETNTVERSIONNUMBERS)(DWORD*, DWORD*, DWORD*);
-		pfRTLGETNTVERSIONNUMBERS pfRtlGetNtVersionNumbers;
-		pfRtlGetNtVersionNumbers = (pfRTLGETNTVERSIONNUMBERS)::GetProcAddress(hModNtdll, "RtlGetNtVersionNumbers");
-		if (pfRtlGetNtVersionNumbers)
-		{
-			pfRtlGetNtVersionNumbers(&dwMajorVer, &dwMinorVer, &dwBuildNumber);
-			dwBuildNumber &= 0x0ffff;
-		}
-		::FreeLibrary(hModNtdll);
-		hModNtdll = NULL;
-	}
-	major_version = dwMajorVer;
-	minor_version = dwMinorVer;
-	build_number = dwBuildNumber;
-}
-
-bool CCommon::IsWindows10FallCreatorOrLater()
-{
-	int major_version, minor_version, build_number;
-	GetWindowsVersion(major_version, minor_version, build_number);
-	if (major_version > 10)
-		return true;
-	else if (major_version == 10 && minor_version > 0)
-		return true;
-	else if (major_version == 10 && minor_version == 0 && build_number >= 16299)
-		return true;
-	else return false;
-}
-
-bool CCommon::GetURL(const wstring & url, wstring & result)
+bool CCommon::GetURL(const wstring & url, wstring & result, bool utf8)
 {
 	bool sucessed{ false };
 	CInternetSession session{};
@@ -547,7 +536,7 @@ bool CCommon::GetURL(const wstring & url, wstring & result)
 			{
 				content += data;
 			}
-			result = StrToUnicode((const char*)content.GetString());
+			result = StrToUnicode((const char*)content.GetString(), utf8);
 			sucessed = true;
 		}
 		pfile->Close();
@@ -568,30 +557,49 @@ bool CCommon::GetURL(const wstring & url, wstring & result)
 	return sucessed;
 }
 
-wstring CCommon::GetInternetIp()
+void CCommon::GetInternetIp(wstring& ip_address, wstring& ip_location, bool global)
 {
 	wstring web_page;
-	wstring ip_address;
-	if (GetURL(L"http://www.whatismyip.com.tw/", web_page))
+	if (GetURL(L"https://ip.cn/", web_page, true))
 	{
 #ifdef _DEBUG
 		ofstream file{ L".\\IP_web_page.log" };
 		file << UnicodeToStr(web_page.c_str()) << std::endl;
 #endif // _DEBUG
-		size_t index, index1, index2;
-		index = web_page.find(L"\"ip\"");		//查找字符串“"ip"”
-		index1 = web_page.find(L'\"', index + 5);	//查找IP地址前面的引号
-		index2 = web_page.find(L'\"', index + 12);	//查找IP地址后面的引号
-		if (index == wstring::npos || index1 == wstring::npos || index2 == wstring::npos)
+		size_t index, index1;
+		index = web_page.find(L"<code>");
+		index1 = web_page.find(L"</code>", index + 6);
+		if (index == wstring::npos || index1 == wstring::npos)
 			ip_address.clear();
 		else
-			ip_address = web_page.substr(index1 + 1, index2 - index1 - 1);	//获取IP地址
+			ip_address = web_page.substr(index + 6, index1 - index - 6);	//获取IP地址
 		if (ip_address.size() > 15 || ip_address.size() < 7)		//IP地址最长15个字符，最短7个字符
 			ip_address.clear();
 
-		return ip_address;
+		//获取IP地址归属地
+		if (!global)
+		{
+			index = web_page.find(L"<code>", index1 + 7);
+			index1 = web_page.find(L"</code>", index + 6);
+			if (index == wstring::npos || index1 == wstring::npos)
+				ip_location.clear();
+			else
+				ip_location = web_page.substr(index + 6, index1 - index - 6);
+		}
+		else
+		{
+			index = web_page.find(L"GeoIP", index1 + 7);
+			index1 = web_page.find(L"</p>", index + 6);
+			if (index == wstring::npos || index1 == wstring::npos)
+				ip_location.clear();
+			else
+				ip_location = web_page.substr(index + 7, index1 - index - 7);
+		}
 	}
-	return wstring();
+	else
+	{
+		ip_address.clear();
+	}
 }
 
 void CCommon::SetRect(CRect & rect, int x, int y, int width, int height)
@@ -622,10 +630,24 @@ CString CCommon::LoadText(LPCTSTR front_str, UINT id, LPCTSTR back_str)
 	return str;
 }
 
-CString CCommon::IntToString(int n)
+CString CCommon::IntToString(int n, bool thousand_separation, bool is_unsigned)
 {
 	CString str;
-	str.Format(_T("%d"), n);
+	if(is_unsigned)
+		str.Format(_T("%u"), static_cast<unsigned int>(n));
+	else
+		str.Format(_T("%d"), n);
+	int length{ str.GetLength() };
+	int count{};
+	if (thousand_separation)
+	{
+		for (int i{ length - 1 }; i > 0; i--)
+		{
+			count++;
+			if (count % 3 == 0)
+				str.Insert(i, _T(","));
+		}
+	}
 	return str;
 }
 
@@ -697,12 +719,60 @@ void CCommon::WStringCopy(wchar_t * str_dest, int dest_size, const wchar_t * str
 		str_dest[dest_size - 1] = L'\0';
 }
 
+double CCommon::StringSimilarDegree_LD(const string & srcString, const string & matchString)
+{
+	int n = srcString.size();
+	int m = matchString.size();
+	//int[, ] d = new int[n + 1, m + 1]; // matrix
+	vector<vector<int>> d(n + 1, vector<int>(m + 1));
+	int cost; // cost
+			  // Step 1（如果其中一个字符串长度为0，则相似度为1）？
+			  //if (n == 0) return (double)m / max(srcString.size(), matchString.size());
+			  //if (m == 0) return (double)n / max(srcString.size(), matchString.size());
+	if (n == 0 || m == 0) return 0.0;	//如果其中一个字符串长度为0，则相似度为0
+										// Step 2
+	for (int i = 0; i <= n; d[i][0] = i++);
+	for (int j = 0; j <= m; d[0][j] = j++);
+	// Step 3
+	for (int i = 1; i <= n; i++)
+	{
+		//Step 4
+		for (int j = 1; j <= m; j++)
+		{
+			// Step 5
+			cost = (matchString.substr(j - 1, 1) == srcString.substr(i - 1, 1) ? 0 : 1);
+			// Step 6
+			d[i][j] = min(min(d[i - 1][j] + 1, d[i][j - 1] + 1), d[i - 1][j - 1] + cost);
+		}
+	}
+
+	// Step 7
+	double ds = 1 - (double)d[n][m] / max(srcString.size(), matchString.size());
+
+	return ds;
+}
+
 void CCommon::SetThreadLanguage(Language language)
 {
 	switch (language)
 	{
 	case Language::ENGLISH: SetThreadUILanguage(MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US)); break;
 	case Language::SIMPLIFIED_CHINESE: SetThreadUILanguage(MAKELANGID(LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED)); break;
+	case Language::TRADITIONAL_CHINESE: SetThreadUILanguage(MAKELANGID(LANG_CHINESE, SUBLANG_CHINESE_TRADITIONAL)); break;
 	default: break;
+	}
+}
+
+void CCommon::SetDialogFont(CWnd * pDlg, CFont * pFont)
+{
+	if (pDlg->GetSafeHwnd() != NULL)
+	{
+		CWnd *pWndChild;
+		pWndChild = pDlg->GetWindow(GW_CHILD);
+		while (pWndChild)
+		{
+			pWndChild->SetFont(pFont);
+			pWndChild = pWndChild->GetWindow(GW_HWNDNEXT);
+		}
 	}
 }

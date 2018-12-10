@@ -51,6 +51,7 @@ BEGIN_MESSAGE_MAP(CGeneralSettingsDlg, CTabDlg)
 	ON_BN_CLICKED(IDC_TODAY_TRAFFIC_TIP_CHECK, &CGeneralSettingsDlg::OnBnClickedTodayTrafficTipCheck)
 	ON_BN_CLICKED(IDC_MEMORY_USAGE_TIP_CHECK, &CGeneralSettingsDlg::OnBnClickedMemoryUsageTipCheck)
 	ON_BN_CLICKED(IDC_OPEN_CONFIG_PATH_BUTTON, &CGeneralSettingsDlg::OnBnClickedOpenConfigPathButton)
+	ON_BN_CLICKED(IDC_SHOW_ALL_CONNECTION_CHECK, &CGeneralSettingsDlg::OnBnClickedShowAllConnectionCheck)
 END_MESSAGE_MAP()
 
 
@@ -80,6 +81,10 @@ BOOL CGeneralSettingsDlg::OnInitDialog()
 	{
 		m_data.auto_run = theApp.GetAutoRun();
 	}
+
+	((CButton*)GetDlgItem(IDC_SAVE_TO_APPDATA_RADIO))->SetCheck(!m_data.portable_mode);
+	((CButton*)GetDlgItem(IDC_SAVE_TO_PROGRAM_DIR_RADIO))->SetCheck(m_data.portable_mode);
+
 	((CButton*)GetDlgItem(IDC_AUTO_RUN_CHECK))->SetCheck(m_data.auto_run);
 
 	((CButton*)GetDlgItem(IDC_TODAY_TRAFFIC_TIP_CHECK))->SetCheck(m_data.traffic_tip_enable);
@@ -97,7 +102,16 @@ BOOL CGeneralSettingsDlg::OnInitDialog()
 	m_language_combo.AddString(CCommon::LoadText(IDS_FOLLOWING_SYSTEM));
 	m_language_combo.AddString(_T("English"));
 	m_language_combo.AddString(_T("简体中文"));
+	m_language_combo.AddString(_T("繁體中文"));
 	m_language_combo.SetCurSel(static_cast<int>(m_data.language));
+
+	((CButton*)GetDlgItem(IDC_SHOW_ALL_CONNECTION_CHECK))->SetCheck(m_data.show_all_interface);
+
+	m_toolTip.Create(this);
+	m_toolTip.SetMaxTipWidth(theApp.DPI(300));
+	m_toolTip.AddTool(GetDlgItem(IDC_SHOW_ALL_CONNECTION_CHECK), CCommon::LoadText(IDS_SHOW_ALL_INFO_TIP));
+	m_toolTip.AddTool(GetDlgItem(IDC_SAVE_TO_APPDATA_RADIO), theApp.m_appdata_dir.c_str());
+	m_toolTip.AddTool(GetDlgItem(IDC_SAVE_TO_PROGRAM_DIR_RADIO), theApp.m_module_dir.c_str());
 
 	return TRUE;  // return TRUE unless you set the focus to a control
 				  // 异常: OCX 属性页应返回 FALSE
@@ -155,7 +169,15 @@ void CGeneralSettingsDlg::OnOK()
 	m_data.language = static_cast<Language>(m_language_combo.GetCurSel());
 	if (m_data.language != theApp.m_general_data.language)
 	{
-		MessageBox(CCommon::LoadText(IDS_LANGUAGE_CHANGE_INFO), NULL, MB_ICONINFORMATION | MB_OK);;
+		MessageBox(CCommon::LoadText(IDS_LANGUAGE_CHANGE_INFO), NULL, MB_ICONINFORMATION | MB_OK);
+	}
+	m_show_all_interface_modified = (m_data.show_all_interface != theApp.m_general_data.show_all_interface);
+
+	//获取数据文件保存位置的设置
+	m_data.portable_mode = (((CButton*)GetDlgItem(IDC_SAVE_TO_PROGRAM_DIR_RADIO))->GetCheck() != 0);
+	if (m_data.portable_mode != theApp.m_general_data.portable_mode)
+	{
+		MessageBox(CCommon::LoadText(IDS_CFG_DIR_CHANGED_INFO), NULL, MB_ICONINFORMATION | MB_OK);
 	}
 
 	CTabDlg::OnOK();
@@ -181,9 +203,22 @@ void CGeneralSettingsDlg::OnBnClickedMemoryUsageTipCheck()
 void CGeneralSettingsDlg::OnBnClickedOpenConfigPathButton()
 {
 	// TODO: 在此添加控件通知处理程序代码
-#ifdef _DEBUG
-	ShellExecute(NULL, _T("explore"), _T(".\\"), NULL, NULL, SW_SHOWNORMAL);
-#else
-	ShellExecute(NULL, _T("explore"), theApp.m_app_data_cfg_path.c_str(), NULL, NULL, SW_SHOWNORMAL);
-#endif
+	ShellExecute(NULL, _T("explore"), theApp.m_config_dir.c_str(), NULL, NULL, SW_SHOWNORMAL);
+}
+
+
+void CGeneralSettingsDlg::OnBnClickedShowAllConnectionCheck()
+{
+	// TODO: 在此添加控件通知处理程序代码
+	m_data.show_all_interface = (((CButton*)GetDlgItem(IDC_SHOW_ALL_CONNECTION_CHECK))->GetCheck() != 0);
+}
+
+
+BOOL CGeneralSettingsDlg::PreTranslateMessage(MSG* pMsg)
+{
+	// TODO: 在此添加专用代码和/或调用基类
+	if (pMsg->message == WM_MOUSEMOVE)
+		m_toolTip.RelayEvent(pMsg);
+
+	return CTabDlg::PreTranslateMessage(pMsg);
 }

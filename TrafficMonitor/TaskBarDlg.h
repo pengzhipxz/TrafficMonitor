@@ -7,7 +7,8 @@
 #include "CommonData.h"
 
 // CTaskBarDlg 对话框
-#define TASKBAR_WND_HEIGHT theApp.DPI(31);
+#define TASKBAR_WND_HEIGHT theApp.DPI(32)				//任务栏窗口的高度
+#define WM_TASKBAR_MENU_POPED_UP (WM_USER + 1004)		//定义任务栏窗口右键菜单弹出时发出的消息
 
 class CTaskBarDlg : public CDialogEx
 {
@@ -18,8 +19,9 @@ public:
 	virtual ~CTaskBarDlg();
 
 	CToolTipCtrl m_tool_tips;
+	CMenu m_menu;	//右键菜单
 
-	void ShowInfo();		//将信息显示到控件上
+	void ShowInfo(CDC* pDC);		//将信息绘制到控件上
 	bool AdjustWindowPos();	//设置窗口在任务栏中的位置
 
 // 对话框数据
@@ -39,8 +41,12 @@ protected:
 	int m_window_width;		//窗口宽度
 	int m_window_width_s;	//不显示CPU和内存利用率时的窗口宽度
 	int m_window_height;
-	int m_ud_lable_width;	//上传、下载的标签宽度
-	int m_cm_lable_width;		//CPU、内存
+	int m_up_lable_width;	//上传标签的宽度
+	int m_down_lable_width;	//下载标签的宽度
+	int m_cpu_lable_width;		//CPU标签的宽度
+	int m_memory_lable_width;	//内存标签的宽度
+	int m_ud_value_width;		//上传、下载数值的宽度
+	int m_cm_value_width;		//CPU、内存数值的宽度
 
 	int m_min_bar_width;	//最小化窗口缩小宽度后的宽度
 	int m_min_bar_height;	//最小化窗口缩小高度后的高度（用于任务栏在屏幕左侧或右侧时）
@@ -52,23 +58,17 @@ protected:
 	bool m_taskbar_on_top_or_bottom{ true };		//如果任务栏在屏幕顶部或底部，则为ture
 	int m_error_code{};
 
-	CMenu m_menu;	//右键菜单
-
 	CFont m_font;			//字体
 
-	CDC* m_pDC{};
+	CDC* m_pDC{};		//窗口的DC，用来计算窗口的宽度
 
 	bool IsTaskbarOnTopOrBottom();		//判断任务栏是否在屏幕的顶部或底部，如果是则返回false，如果任务栏在屏幕两侧，则返回false
 	CString GetMouseTipsInfo();		//获取鼠标提示
 
 public:
-	static void SaveConfig();		//保存设置到ini文件
-	static void LoadConfig();		//从ini文件载入设置
-
 	void SetTextFont();
 	void ApplySettings();
 	void CalculateWindowWidth();		//计算窗口需要的宽度
-	void CalculateHorizontalArrangeSize();		//如果设置了水平排列，则将窗口宽度扩大，高度减小（调用此函数前必须先调用CalculateWindowWidth()）
 
 	void SetToolTipsTopMost();			//设置鼠标提示置顶
 	void UpdateToolTips();
@@ -90,4 +90,6 @@ public:
 	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
 	afx_msg void OnLButtonDblClk(UINT nFlags, CPoint point);
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
+	virtual BOOL OnCommand(WPARAM wParam, LPARAM lParam);
+	afx_msg void OnPaint();
 };

@@ -5,6 +5,7 @@
 #include "TrafficMonitor.h"
 #include "TaskbarColorDlg.h"
 #include "afxdialogex.h"
+#include "CMFCColorDialogEx.h"
 
 
 // CTaskbarColorDlg ¶Ô»°¿ò
@@ -93,7 +94,8 @@ afx_msg LRESULT CTaskbarColorDlg::OnStaticClicked(WPARAM wParam, LPARAM lParam)
 	default:
 		return 0;
 	}
-	CColorDialog colorDlg(m_colors[index], 0, this);
+
+	CMFCColorDialogEx colorDlg(m_colors[index], 0, this);
 	if (colorDlg.DoModal() == IDOK)
 	{
 		m_colors[index] = colorDlg.GetColor();

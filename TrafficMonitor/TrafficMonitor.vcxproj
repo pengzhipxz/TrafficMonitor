@@ -21,7 +21,7 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{09483BED-B1E9-4827-8120-A18302C84AA8}</ProjectGuid>
     <RootNamespace>TrafficMonitor</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.16299.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
     <Keyword>MFCProj</Keyword>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -184,9 +184,15 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />
+    <Text Include="res\Acknowledgement.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="AboutDlg.h" />
+    <ClInclude Include="AcknowledgementDlg.h" />
+    <ClInclude Include="AdapterCommon.h" />
     <ClInclude Include="CalendarHelper.h" />
+    <ClInclude Include="CMFCColorDialogEx.h" />
+    <ClInclude Include="CTabCtrlEx.h" />
     <ClInclude Include="HistoryTrafficCalendarDlg.h" />
     <ClInclude Include="HistoryTrafficListDlg.h" />
     <ClInclude Include="LinkStatic.h" />
@@ -207,6 +213,7 @@
     <ClInclude Include="OptionsDlg.h" />
     <ClInclude Include="PictureStatic.h" />
     <ClInclude Include="Resource.h" />
+    <ClInclude Include="SimpleXML.h" />
     <ClInclude Include="SkinDlg.h" />
     <ClInclude Include="SpinEdit.h" />
     <ClInclude Include="StaticEx.h" />
@@ -218,9 +225,15 @@
     <ClInclude Include="TaskBarSettingsDlg.h" />
     <ClInclude Include="TrafficMonitor.h" />
     <ClInclude Include="TrafficMonitorDlg.h" />
+    <ClInclude Include="WinVersionHelper.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="AboutDlg.cpp" />
+    <ClCompile Include="AcknowledgementDlg.cpp" />
+    <ClCompile Include="AdapterCommon.cpp" />
     <ClCompile Include="CalendarHelper.cpp" />
+    <ClCompile Include="CMFCColorDialogEx.cpp" />
+    <ClCompile Include="CTabCtrlEx.cpp" />
     <ClCompile Include="HistoryTrafficCalendarDlg.cpp" />
     <ClCompile Include="HistoryTrafficListDlg.cpp" />
     <ClCompile Include="LinkStatic.cpp" />
@@ -239,6 +252,7 @@
     <ClCompile Include="NetworkInfoDlg.cpp" />
     <ClCompile Include="OptionsDlg.cpp" />
     <ClCompile Include="PictureStatic.cpp" />
+    <ClCompile Include="SimpleXML.cpp" />
     <ClCompile Include="SkinDlg.cpp" />
     <ClCompile Include="SpinEdit.cpp" />
     <ClCompile Include="StaticEx.cpp" />
@@ -254,6 +268,7 @@
     <ClCompile Include="TaskBarSettingsDlg.cpp" />
     <ClCompile Include="TrafficMonitor.cpp" />
     <ClCompile Include="TrafficMonitorDlg.cpp" />
+    <ClCompile Include="WinVersionHelper.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="TrafficMonitor.rc" />

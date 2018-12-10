@@ -5,6 +5,7 @@
 #include "TrafficMonitor.h"
 #include "MainWndColorDlg.h"
 #include "afxdialogex.h"
+#include "CMFCColorDialogEx.h"
 
 
 // CMainWndColorDlg ¶Ô»°¿ò
@@ -77,7 +78,8 @@ afx_msg LRESULT CMainWndColorDlg::OnStaticClicked(WPARAM wParam, LPARAM lParam)
 	default:
 		return 0;
 	}
-	CColorDialog colorDlg(m_colors[index], 0, this);
+
+	CMFCColorDialogEx colorDlg(m_colors[index], 0, this);
 	if (colorDlg.DoModal() == IDOK)
 	{
 		m_colors[index] = colorDlg.GetColor();
